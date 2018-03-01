@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<style>
+.county {
+    fill: none;
+}
+
+.region {
+    opacity: .7;
+}
+
+path.country {
+    stroke: grey;
+    stroke-width: .1;
+    fill: none;
+    pointer-events: none;
+}
+
+path.region {
+    stroke: black;
+    stroke-width: .5;
+    /*pointer-events: none;*/
+}
+
+
+.background {
+    fill: none;
+    pointer-events: all;
+}
+</style>
+
+<body>
+    <div id="map"></div>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+    <script>
+    const width = 960;
+    const height = 580;
+    const colour_scale = d3.scaleOrdinal(["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999"]);
+    let centered;
+    let active = d3.select(null);
+
+    const regions_info = [{
+            region_name: "APAC",
+            countries: d3.set(['036', '554', '096', '116', '360', '418', '458', '104', '608', '702', '764', '704', '050', '064', '356', '524', '144', '410', '156', '344', '446', '496', '158', '392'])
+        },
+
+        {
+            region_name: "Europe",
+            countries: d3.set(['056', '442', '528', '008', '051', '031', '112', '070', '100', '191', '203', '233', '348', '398', '417', '428', '440', '807', '498', '616', '642', '643', '688', '703', '705', '762', '795', '804', '860', '040', '276', '756', '250', '492', '380', '674', '208', '246', '352', '578', '752', '196', '300', '376', '470', '620', '724', '372', '826'])
+        },
+
+        {
+            region_name: "LATAM",
+            countries: d3.set(['076', '188', '192', '214', '222', '320', '340', '558', '591', '484', '032', '068', '152', '170', '218', '600', '604', '858', '862'])
+        },
+
+        {
+            region_name: "MEA",
+            countries: d3.set(['024', '072', '132', '180', '288', '430', '450', '454', '508', '516', '566', '678', '690', '694', '894', '716', '108', '262', '232', '231', '404', '646', '706', '728', '834', '800', '818', '004', '048', '364', '368', '400', '414', '422', '512', '586', '275', '634', '682', '760', '784', '887', '012', '204', '854', '120', '140', '148', '178', '384', '226', '266', '270', '324', '624', '434', '466', '478', '504', '562', '686', '768', '788', '426', '710', '748', '792'])
+        },
+
+        {
+            region_name: "NA",
+            countries: d3.set(['124', '840'])
+        }
+    ]
+
+    const projection = d3.geoMercator().scale(width / 2 / Math.PI)
+        .rotate([-11, 0])
+        .translate([(width) / 2, (height * 1.35) / 2])
+
+    const path = d3.geoPath().projection(projection);
+
+    const zoom = d3.zoom()
+        .scaleExtent([1, 20])
+        .on("zoom", zoomed);
+
+    const svg = d3.select("#map")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .on("click", stopped, true);
+
+    const background = svg.append("rect")
+        .attr("class", "background")
+        .attr("width", width)
+        .attr("height", height)
+        .on("click", reset);
+
+    const g = svg.append("g");
+
+    svg.call(zoom);
+
+    d3.queue()
+        .defer(d3.json, 'world-50m edited.json')
+        .defer(d3.json, 'ISO Numeric.json')
+        .await(ready);
+
+    function ready(error, countries_topo, iso_codes) {
+        if (error) throw error;
+
+        const regions_geo = merge(countries_topo, iso_codes)
+        const countries_geo = topojson.feature(countries_topo, countries_topo.objects.countries)
+
+        let countries = g.selectAll('.country')
+            .data(countries_geo.features)
+            .enter()
+            .append("path")
+            .attr("d", path)
+            .attr("class", "country")
+            .on("mouseover", d => console.log(d));
+
+        let regions = g.selectAll('.region')
+            .data(regions_geo)
+            .enter()
+            .append("path")
+            .attr("d", d => path(d.geo))
+            .attr("class", "region")
+            .style("fill", (d, i) => colour_scale(i))
+            // .on("mouseover", d => console.log(d))
+            .on("click", clicked);
+    };
+
+    function merge(countries_topo, iso_codes) {
+        let regions_geo = [];
+
+        for (var i = 0; i < regions_info.length; i++) {
+            let countries = regions_info[i].countries;
+            let countries_in_region = countries_topo.objects.countries.geometries.filter(d => countries.has(d.id))
+            let region = topojson.merge(countries_topo, countries_in_region)
+
+            regions_geo.push({
+                'region_name': regions_info[i].region_name,
+                'geo': region
+            })
+        }
+
+        return regions_geo
+    }
+
+    function clicked(d) {
+        console.log(d)
+        let geo = d.geo;
+        if (active.node() === this) return reset();
+        active.classed("active", false);
+        active = d3.select(this).classed("active", true);
+
+        let bounds = path.bounds(geo),
+            dx = bounds[1][0] - bounds[0][0],
+            dy = bounds[1][1] - bounds[0][1],
+            x = (bounds[0][0] + bounds[1][0]) / 2,
+            y = (bounds[0][1] + bounds[1][1]) / 2,
+            scale = Math.max(1, 0.9 / Math.max(dx / width, dy / height)),
+            translate = [width / 2 - scale * x, height / 2 - scale * y];
+        console.log(bounds)
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+    }
+
+    function reset() {
+        active.classed("active", false);
+        active = d3.select(null);
+
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform, d3.zoomIdentity);
+    }
+
+    function zoomed() {
+        g.style("stroke-width", 1.5 / d3.event.transform.k + "px");
+        g.attr("transform", d3.event.transform);
+    }
+
+    function stopped() {
+        if (d3.event.defaultPrevented) d3.event.stopPropagation();
+    }
+    </script>
+</body>
+
+</html>

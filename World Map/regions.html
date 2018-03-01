@@ -2,25 +2,53 @@
 <html>
 <meta charset="utf-8">
 <style>
-path.country {
+.country {
     fill: none;
-    stroke: #777;
-    stroke-width: .1;
-    /*pointer-events: none;   */
 }
 
-path.region {
+.graticule {
     fill: none;
-    stroke: #777;
-    stroke-width: .5;
-    opacity: .6;
+    stroke: grey;
+    stroke-width: 0.5px;
+    stroke-opacity: 0.3;
     pointer-events: none;
 }
 
-region:hover {
-    fill: red;
-    stroke: #d9edf7;
-    stroke-width: 1px;
+.country1 {
+    pointer-events: none;
+}
+
+.region {
+    fill: none;
+    /*opacity: .5;*/
+    /*pointer-events: none;*/
+}
+
+.continent {
+    /*fill: none;*/
+    opacity: .5;
+    /*pointer-events: none;*/
+}
+
+.continent.active {
+    pointer-events: none;
+    /*opacity: .8;*/
+}
+
+path.country {
+    /*    stroke: grey;
+    stroke-width: .1;*/
+    pointer-events: none;
+}
+
+path.region {
+    /*    stroke: black;
+    stroke-width: .5;*/
+    /*pointer-events: none;*/
+}
+
+path.region:hover {
+    opacity: .9;
 }
 
 .background {
@@ -28,35 +56,72 @@ region:hover {
     pointer-events: all;
 }
 
-.region.active {
-    fill: orange;
+
+table {
+    overflow: auto;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: .7em;
+    position: absolute;
+    right: 4%;
 }
 
-.mesh {
-    fill: none;
-    stroke: #fff;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+th,
+td {
+    border: 1px white solid;
+    text-overflow: ellipsis;
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    text-transform: uppercase;
+    background: black;
+    color: #FFF;
+}
+
+tr:nth-child(even) {
+    background-color: #EEE;
+}
+
+tr:nth-child(odd) {
+    background-color: #FDFDFD;
 }
 </style>
 
 <body>
-    <div class="legend"></div>
-    <div class="view" id="map"></div>
+    <div id="map"></div>
     <script src="http://d3js.org/d3.v4.min.js"></script>
     <script src="http://d3js.org/topojson.v1.min.js"></script>
     <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+    <script src="//d3js.org/d3-geo-projection.v1.min.js"></script>
     <script>
-    const width = document.querySelector('#map').offsetWidth;
-    const mapRatio = 0.7;
-    const height = width * mapRatio;
-    const colour_scale = d3.scaleOrdinal(["#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf","#999999"]);
+    var graticule = d3.geoGraticule();
+
+    const width = 1500;
+    const height = 900;
+    const colour_scale2 = d3.scaleOrdinal(["#DCDCDC", "#A9A9A9", "#707070", "#484848"]);
+    const colour_scale = d3.scaleOrdinal(["#5CBFC8", "#dd3497", "#FC7955"]);
+    const opacity_fade = .1;
+    const opacity_normal = .5;
+
+    let countries_geo;
+    let continents_geo;
+    let regions_geo;
+    let countries;
+    let continents;
+    let regions;
+
     let centered;
     let active = d3.select(null);
+    let regions_info
 
-    const projection = d3.geoMercator().scale(width / 2 / Math.PI)
+    let continents_info
+
+    const projection = d3.geoEckert1()
+        .scale(width / 2 / Math.PI)
         .rotate([-11, 0])
-        .translate([(width) / 2, height * 1.35 / 2])
+        .translate([(width) / 2, (height) / 2])
 
     const path = d3.geoPath().projection(projection);
 
@@ -66,74 +131,289 @@ region:hover {
 
     const svg = d3.select("#map")
         .append("svg")
-        .attr("preserveAspectRatio", "xMinYMin")
         .attr("width", width)
         .attr("height", height)
-        .on("click", stopped, true);
+        .on("click", stopped, true)
 
-    const background = svg.append("rect")
-        .attr("class", "background")
-        .attr("width", width)
-        .attr("height", height)
-        .on("click", reset);
+
 
     const g = svg.append("g");
+
+   // g.append("rect")
+   //      .attr("class", "background")
+   //      .attr("width", width)
+   //      .attr("height", height)
+   //      .on("click", reset);
+
+    g.append("path")
+        .datum(graticule)
+        .attr("class", "graticule")
+        .attr("d", path);
+
+    g.append("path")
+        .datum({ type: "Sphere" })
+        .attr("class", "sphere")
+        .attr("d", path)
+        .attr("fill", "#f1f1f1")
+        .attr("stroke", "black")
+        .attr("opacity", 0.3)
+        .on("click", reset);
 
     svg.call(zoom);
 
     d3.queue()
-        .defer(d3.json, 'QGIS no french guinea Topo.json')
         .defer(d3.json, 'regions.json')
+        .defer(d3.json, 'continents.json')
+        .defer(d3.json, 'world-50m edited.json')
+        .defer(d3.json, 'ISO Numeric.json')
         .await(ready);
 
-    function ready(error, countries_topo, regions_geo) {
+    function ready(error, regions_info, continents_info, countries_topo, iso_codes) {
         if (error) throw error;
-                console.log('countries_topo = ', countries_topo)
 
-        console.log('regions_geo = ', regions_geo)
+        countries_geo = topojson.feature(countries_topo, countries_topo.objects.countries)
+        regions_geo = merge(countries_topo, regions_info)
+        continents_geo = merge(countries_topo, continents_info)
 
-        const countries_geo = topojson.feature(countries_topo, countries_topo.objects['QGIS no french guinea']).features;
+        console.log('countries_geo', countries_geo)
+        console.log('regions_geo', regions_geo)
+        console.log('continents_geo', continents_geo)
 
-        console.log('countries_geo = ', countries_geo)
+        var countries1 = topojson.feature(countries_topo, countries_topo.objects.countries).features;
+        topo = countries1;
+        draw(topo);
 
-        // const countries = g.selectAll('.country')
-        //     .data(countries_geo)
+        function draw(topo) {
+
+            var country = g.selectAll(".country1").data(topo);
+
+            country.enter().insert("path")
+                .attr("class", "country1")
+                .attr("d", path)
+                .style("fill", "lightgrey")
+                .style('stroke', 'none')
+                .style('opacity', .5)
+        }
+
+        // countries = g.selectAll('.country')
+        //     .data(countries_geo.features)
         //     .enter()
         //     .append("path")
-        //     .attr("d", path)
         //     .attr("class", "country")
+        //     .attr("id", d => d.id)
+        //     .attr("d", path)
         //     .on("mouseover", d => console.log(d));
 
         regions = g.selectAll('.region')
             .data(regions_geo)
             .enter()
             .append("path")
-            .attr("d", d => path(d.geo))
             .attr("class", "region")
+            .attr("id", d => d.id)
+            .attr("d", d => path(d.geo))
+            .style("fill", (d, i) => colour_scale2(i))
+            .style('opacity', .3)
+            // .style('display', 'none')
+            .on("click", clicked_region)
+            .on("mouseover", d => create_table(d))
+        // .on("mouseout", mouseout)
+
+
+        continents = g.selectAll('.continents')
+            .data(continents_geo)
+            .enter()
+            .append("path")
+            .attr("class", "continent")
+            .attr("id", d => d.id)
+            .attr("d", d => path(d.geo))
             .style("fill", (d, i) => colour_scale(i))
-            .style("stroke", (d, i) => shade_colour(colour_scale(i), -40))
-            .on("mouseover", d => console.log(d))
-            .on("click", clicked);
+            .on("click", clicked_continent)
+            .on("mouseover", d => create_table(d))
+
+
+
+
+
+        // .on("mouseover", mouseover)
+        // .on("mouseout", mouseout)
+
     };
 
-    function clicked(d) {
-        var d = d.geo;
-        if (active.node() === this) return reset();
-        active.classed("active", false);
-        active = d3.select(this).classed("active", true);
+    function clicked_region(d) {
+        zoom_on_click(d, regions)
+    }
 
-        let bounds = path.bounds(d),
+    function clicked_continent(d) {
+        zoom_on_click(d, continents)
+        highlight_continent(d)
+        highlight_region(d)
+    }
+
+
+    // function mouseover(d) {
+    //     let id = d.id;
+    //     let this_ = continents.filter(d => d.id == id);
+    //     let other_ = continents.filter(d => d.id != id);
+
+    //     highlight(this_, opacity_normal)
+    //     highlight(other_, opacity_fade)
+
+    // }
+
+    // function mouseout(d) {
+    //     highlight(continents, opacity_normal)
+    // }
+
+
+    function highlight(thing, opacity) {
+        thing
+            .style('opacity', opacity)
+    }
+
+    function highlight_continent(d) {
+        let id = d.id;
+        let continents_other = continents.filter(d => d.id != id);
+        let continent_this = continents.filter(d => d.id == id);
+
+        continent_this
+            .style('opacity', opacity_normal)
+
+        continents_other
+            .style('opacity', opacity_fade)
+    }
+
+
+    function highlight_region(d) {
+        let ids = d.data;
+        let regions_in_continent = regions.filter(d => ids.includes(d.id))
+        let regions_other = regions.filter(d => !ids.includes(d.id))
+
+        regions_in_continent
+            .style('display', 'inherit')
+
+        regions_other
+            .style('display', 'none')
+    }
+
+    function zoom_on_click(d, selection) {
+        let id = d.id;
+        let geo = d.geo
+
+        // check type of this, region or continent.
+        // let selection_data = selection.filter(d => d.id == id);
+        // let geo = selection_data[0].geo;
+
+        this_ = selection.filter(d => d.id == id);
+        console.log('this_', this_)
+
+
+        // Check if this node is the one being zoomed on.
+        if (selection != regions) {
+            if (active.node() === this_) return reset();
+            active.classed("active", false);
+            active = this_.classed("active", true);
+            console.log(active)
+        }
+
+
+        // Compute the bounds of a feature of interest, then derive scale & translate.
+        let bounds = path.bounds(geo),
             dx = bounds[1][0] - bounds[0][0],
             dy = bounds[1][1] - bounds[0][1],
             x = (bounds[0][0] + bounds[1][0]) / 2,
             y = (bounds[0][1] + bounds[1][1]) / 2,
-            scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height))),
+            scale = Math.max(1, 0.9 / Math.max(dx / width, dy / height)),
             translate = [width / 2 - scale * x, height / 2 - scale * y];
 
+        // Update the projection to use computed scale & translate.
         svg.transition()
             .duration(750)
-            .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+            .call(zoom.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
     }
+
+
+
+    function calc_div_coords(d) {
+        var centroid = path.centroid(d.geo);
+        var svg_position = $('svg').position();
+
+        coords = {
+            'left': svg_position['left'] + centroid[0] + d.properties.dx,
+            'top': svg_position['top'] + centroid[1] + d.properties.dy
+        }
+        return coords
+    }
+
+
+    function delete_table() {
+        d3.select("table").remove()
+        d3.select("thead").remove()
+        d3.select("tbody").remove()
+    }
+
+    function create_table(data) {
+        console.log(data)
+        delete_table();
+
+        let table = d3.select("#body").append("table");
+        let thead = table.append("thead");
+        let tbody = table.append("tbody");
+
+        columns = 'data'
+        console.log('columns', columns)
+
+        thead.append("tr")
+            .selectAll("th")
+            .data(columns)
+            .enter()
+            .append("th")
+            .text(function(column) { return toTitleCase(column); });
+
+        console.log('thead', thead)
+
+        // let table = d3.select("table");
+        // let thead = d3.select("thead");
+        // let tbody = table.append("tbody");
+
+        let rows = tbody.selectAll("tr")
+            .data(data)
+            .enter()
+            .append("tr");
+        console.log('rows', rows)
+
+        let cells = rows.selectAll("td")
+            .data(function(row) {
+                return columns.map(function(column) {
+                    return { column: column, value: row[column] };
+                });
+            })
+            .enter()
+            .append("td")
+            .text(function(d) { return d.value; });
+    }
+
+
+    function merge(countries_topo, info) {
+        let geo = [];
+        let continent_exists = false;
+
+        for (var i = 0; i < info.length; i++) {
+            let countries = d3.set(info[i].countries_iso);
+            let countries_in_region = countries_topo.objects.countries.geometries.filter(d => countries.has(d.id))
+            let region = topojson.merge(countries_topo, countries_in_region)
+
+            geo.push({
+                'id': info[i].id,
+                'geo': region,
+                'data': info[i].data,
+                'countries_iso': info[i].countries_iso
+            })
+        }
+
+        return geo
+    }
+
 
     function reset() {
         active.classed("active", false);
@@ -153,41 +433,13 @@ region:hover {
         if (d3.event.defaultPrevented) d3.event.stopPropagation();
     }
 
-    function resize() {
-        width = document.querySelector('#map').offsetWidth;
-        height = width * mapRatio;
+    function get_unique_values(data, value) {
+        var set_of_values = {};
+        data.forEach(d => set_of_values[d[value]] = 1)
+        var unique_values = Object.keys(set_of_values)
 
-        projection.scale(width / 2 / Math.PI)
-            .translate([(width) / 2, height * 1.35 / 2])
-            .precision(.1);
-
-        document.querySelector('svg').setAttribute('width', width);
-        document.querySelector('svg').setAttribute('height', height);
-        svg.selectAll('.regions, .border').attr('d', path);
+        return unique_values;
     }
-
-    function shade_colour(colour, percent) {
-
-    var R = parseInt(colour.substring(1,3), 16);
-    var G = parseInt(colour.substring(3,5), 16);
-    var B = parseInt(colour.substring(5,7), 16);
-
-    R = parseInt(R * (100 + percent) / 100);
-    G = parseInt(G * (100 + percent) / 100);
-    B = parseInt(B * (100 + percent) / 100);
-
-    R = (R<255)? R:255;  
-    G = (G<255)? G:255;  
-    B = (B<255)? B:255;  
-
-    var RR = ((R.toString(16).length==1) ? "0" + R.toString(16): R.toString(16));
-    var GG = ((G.toString(16).length==1) ? "0" + G.toString(16): G.toString(16));
-    var BB = ((B.toString(16).length==1) ? "0" + B.toString(16): B.toString(16));
-
-    return "#" + RR + GG + BB;
-}
-
-
     </script>
 </body>
 
