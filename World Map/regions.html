@@ -1,99 +1,166 @@
 <!DOCTYPE html>
 <html>
 <meta charset="utf-8">
-<style>
-.graticule {
-    fill: none;
-    stroke: grey;
-    stroke-width: 0.5px;
-    stroke-opacity: 0.3;
-    pointer-events: none;
-}
 
-.country {
-    pointer-events: none;
-}
+<head>
+    <link rel="stylesheet" href="./bootstrap.min.css">
+    <style>
+    .graticule {
+        fill: none;
+        stroke: grey;
+        stroke-width: 0.5px;
+        stroke-opacity: 0.3;
+        pointer-events: none;
+    }
 
-.region {
-    opacity: .5;
-}
+    .country {
+        pointer-events: none;
+    }
 
-.region:hover {
-    opacity: .1;
-}
+    .region {
+        opacity: .9;
+    }
 
-.continent {
-    opacity: 1;
-}
+    .region:hover {
+        opacity: .4;
+    }
 
-.continent:hover {
-    opacity: .7;
-}
+    .continent {
+        opacity: .9;
+    }
 
-.continent.active {
-    pointer-events: none;
-    opacity: .4;
-    /*opacity: .6;*/
-}
-
-path {
-      stroke-linejoin: round;
-
-}
-
-path.region {
-    opacity: 1;
-    stroke: white;
-}
+    .continent:hover {
+        opacity: .4;
+    }
 
 
-.label-region {
-    fill: black;
-    fill-opacity: .5;
-    font-size: 5px;
-    /*font-weight: 300;*/
-    text-anchor: middle;
-}
+    .continent.active {
+        pointer-events: none;
+        opacity: .4;
+    }
 
-.label-continent {
-    fill: #777;
-    fill-opacity: .5;
-    font-size: 20px;
-    font-weight: 300;
-    text-anchor: middle;
-}
+    path {
+        stroke-linejoin: round;
+    }
 
+    .label_region {
+        fill: black;
+        fill-opacity: .5;
+        font-size: 6px;
+        font-weight: 100;
+        text-anchor: middle;
+    }
 
-text {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 10px;
-  pointer-events: none;
-}
-</style>
+    .label_continent {
+        fill: black;
+        fill-opacity: .3;
+        font-size: 20px;
+        font-weight: 300;
+        text-anchor: middle;
+    }
+
+    text {
+        font-family: montserrat;
+        pointer-events: none;
+    }
+
+    div#container {
+        display: flex;
+    }
+
+    div#header {
+        position: relative;
+        padding-left: px;
+        z-index: 10;
+    }
+
+    div#left_panel {
+        padding-top: 1rem;
+        padding-left: 1rem;
+        z-index: 10;
+        opacity: .7;
+        pointer-events: none;
+        background: white;
+        display: block;
+        height: -webkit-fill-available;
+        width: 100px;
+    }
+
+    div#viz {
+        position: absolute;
+        top: 0;
+        left: 0%;
+    }
+
+    table {
+        overflow: auto;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: .7em;
+        position: absolute;
+        right: 4%;
+    }
+
+    th,
+    td {
+        border: 1px white solid;
+        text-overflow: ellipsis;
+        padding: 10px;
+        text-align: left;
+    }
+
+    th {
+        text-transform: uppercase;
+        background: black;
+        color: #FFF;
+    }
+
+    tr:nth-child(even) {
+        background-color: #EEE;
+    }
+
+    tr:nth-child(odd) {
+        background-color: #FDFDFD;
+    }
+    </style>
+</head>
 
 <body>
-    <div id="map"></div>
-    <script src="http://d3js.org/d3.v4.min.js"></script>
-    <script src="http://d3js.org/topojson.v1.min.js"></script>
-    <script src="https://d3js.org/d3-queue.v3.min.js"></script>
-    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
-    <script src="//d3js.org/d3-geo-projection.v1.min.js"></script>
+    <div class="container-fluid">
+        <div class="row">
+            <div id='left_panel' class="col-md-2 d-none d-md-block sidebar">
+                <h1 id='continent'></h1>
+                <h2 id='region'></h2>
+                </br>
+                <table></table>
+                <ul></ul>
+            </div>
+        </div>
+    </div>
+    <div id='viz'>
+    </div>
+    </div>
+    </div>
+</body>
+<footer>
+    <script src="./d3.v4.min.js"></script>
+    <script src="./topojson.v1.min.js"></script>
+    <script src="./d3-queue.v3.min.js"></script>
+    <script src="./d3-geo-projection.v1.min.js"></script>
+    <script src="./jquery-3.3.1.slim.min.js"></script>
     <script>
-    var graticule = d3.geoGraticule();
-
-    const width = 1000;
-    const height = 820;
-    // const colour_scale = d3.scaleOrdinal(["#5CBFC8", "#dd3497", "#FC7955"]);
+    const graticule = d3.geoGraticule();
+    const width = 1900;
+    const height = 900;
+    const opacity_fade = .1;
+    const opacity_normal = .5;
+    const continents_of_interest = ['Europe', 'APAC', 'MEA'];
+    const circlePadding = 20;
     const colour_scale = {
         'Europe': "#dd3497",
         'APAC': "#5CBFC8",
         'MEA': "#FC7955"
     }
-
-    const opacity_fade = .1;
-    const opacity_normal = .5;
-    const continents_of_interest = ['Europe', 'APAC', 'MEA'];
-    const circlePadding = 20;
 
     let countries_geo;
     let continents_geo;
@@ -101,15 +168,13 @@ text {
     let countries;
     let continents;
     let regions;
-
     let centered;
     let active = d3.select(null);
     let regions_info
-
     let continents_info
 
     const projection = d3.geoLarrivee() //geoLarrivee, geoEckert1
-        .scale(width / 2 / Math.PI)
+        .scale((width) / 3.5 / Math.PI)
         .rotate([-11, 0])
         .translate([(width) / 2, (height) / 2])
 
@@ -119,7 +184,7 @@ text {
         .scaleExtent([1, 20])
         .on("zoom", zoomed);
 
-    const svg = d3.select("#map")
+    const svg = d3.select("#viz")
         .append("svg")
         .attr("width", width)
         .attr("height", height)
@@ -139,30 +204,29 @@ text {
         .attr("fill", "#f1f1f1")
         .attr("stroke", "black")
         .attr("opacity", 0.3)
-        .on("click", d => {
-            reset()
-            // continents.style('opacity', .5)
-        });
+        .on("click", d => reset());
 
     svg.call(zoom);
 
     d3.queue()
-        .defer(d3.json, 'regions.json')
-        .defer(d3.json, 'continents.json')
-        .defer(d3.json, 'world-50m edited.json')
-        .defer(d3.json, 'ISO Numeric.json')
+        .defer(d3.json, 'countries_geo.json')
+        .defer(d3.json, 'regions_geo.json')
+        .defer(d3.json, 'continents_geo.json')
         .await(ready);
 
-    function ready(error, regions_info, continents_info, countries_topo, iso_codes) {
+    function ready(error, countries_geo_, regions_geo_, continents_geo_) {
         if (error) throw error;
+        console.log(regions_geo)
 
-        countries_geo = topojson.feature(countries_topo, countries_topo.objects.countries).features
-        regions_geo = merge(countries_topo, regions_info)
-        continents_geo = merge(countries_topo, continents_info)
+        countries_geo = countries_geo_
+        regions_geo = regions_geo_
+        continents_geo = continents_geo_
 
-        console.log('countries_geo', countries_geo)
-        console.log('regions_geo', regions_geo)
-        console.log('continents_geo', continents_geo)
+        delete countries_geo_
+        delete regions_geo_
+        delete continents_geo_
+
+        let countries_iso = get_all_countries(regions_geo)
 
         countries = g.selectAll(".country")
             .data(countries_geo)
@@ -171,8 +235,11 @@ text {
             .attr("class", "country")
             .attr("d", path)
             .attr("fill", "lightgrey")
-            .attr('stroke', 'none')
             .attr('opacity', 1)
+
+        countries.filter(d => countries_iso.includes(d.id))
+            .attr('stroke', 'white')
+            .attr('stroke-width', .5)
 
         regions = g.selectAll('.region')
             .data(regions_geo)
@@ -181,10 +248,27 @@ text {
             .attr("class", "region")
             .attr("id", d => d.id)
             .attr("d", d => path(d.geo))
-            .on("click", zoom_on_click)
-            .attr("fill", (d) => colour_scale[d.data.location.continent])
+            .attr("fill", "lightgrey")
+            // .attr("fill", (d) => colour_scale[d.data.location.continent])
+            .attr('stroke', 'white')
+            .attr('stroke-width', .2)
+            .on("click", d => {
+                zoom_on_click(d)
+            })
             .on("mouseover", function(d) {
-                console.log('REGION', d.data.location.continent, d3.select(this))
+                console.log('REGION', d)
+                regions.attr('fill', d => colour_scale[d.data.location.continent])
+                d3.select(this).attr('fill', shade_colour(colour_scale[d.data.location.continent], 20))
+
+                add_title('#continent', d.data.location.continent)
+                add_title('#region', d.id)
+                create_table(d.data.business)
+
+            })
+            .on("mouseout", function(d) {
+                regions.attr('fill', d => colour_scale[d.data.location.continent])
+                add_title('#region', '')
+                delete_table()
             })
 
         continents = g.selectAll('.continents')
@@ -195,53 +279,101 @@ text {
             .attr("id", d => d.id)
             .attr("d", d => path(d.geo))
             .attr("fill", (d) => colour_scale[d.id])
-            .on("click", zoom_on_click)
-            .on("mouseover", d => console.log('CONTINENT', d))
+            .on("click", d => {
+                zoom_on_click(d)
+                clicked_continent(d)
+            })
+            .on("mouseover", function(d) {
+                continents.attr('fill', d => colour_scale[d.id])
+                d3.select(this).attr('fill', shade_colour(colour_scale[d.id], 20))
+                console.log('CONTINENT', d)
+                add_title('#continent', d.id)
+                add_title('#region', '')
+                delete_table()
+            })
+            .on("mouseout", d => {
+                continents.attr('fill', d => colour_scale[d.id])
+                add_title('#continent', '')
+                add_title('#region', '')
+                delete_table()
+            })
 
-        // labels_country = g.selectAll(".subunit-label")
-        //     .data(countries_geo)
-        //     .enter()
-        //     .append("text")
-        //     .attr("class", "subunit-label")
-        //     .attr("transform", d => "translate(" + path.centroid(d.geometry) + ")")
-        //     .attr("dy", ".35em")
-        //     .text(function(d) { return d.id; });
-
-
-        labels_regions = g.selectAll(".label-region")
+        labels_regions = g.selectAll(".label_region")
             .data(regions_geo)
             .enter()
             .append("text")
-            .attr("class", d => ".label-continent" + " " + d.data.location.continent)
-            .attr("transform", d => "translate(" + d.centroid + ")")
+            .attr("class", d => "label_region")
+            .attr("id", d => d.id)
+            .attr("transform", d => "translate(" + offset_centroid(d) + ")")
             .attr("dy", ".35em")
             .attr('display', 'none')
             .text(function(d) { return d.id; });
 
-        labels_continent = g.selectAll(".label-continent")
+        labels_continent = g.selectAll(".label_continent")
             .data(continents_geo)
             .enter()
             .append("text")
-            .attr("class", "label-continent")
-            .attr("transform", d => "translate(" + d.centroid + ")")
+            .attr("class", "label label_continent")
+            .attr("transform", d => "translate(" + offset_centroid(d) + ")")
             .attr("dy", ".35em")
             .text(function(d) { return d.id; });
     };
 
-function clicked_region(d) {
-    console.log(d)
-}
+    function offset_centroid(d) {
+        let centroid = d.centroid;
+        let offset = [0, 0];
+        if (d.offset != null) offset = d.offset
+        let new_centroid = [centroid[0] + offset[0], centroid[1] + offset[1]]
 
+        return new_centroid
+    }
+
+    function clicked_continent(d) {
+        labels_continent.attr('display', 'none')
+        transition_regions(d)
+    }
+
+    function transition_regions(d) {
+        region_data_in_continent = regions_geo.filter(x => x.data.location.continent == d.id)
+        region_ids = get_unique_values(region_data_in_continent, 'id')
+
+        regions_in_continent = labels_regions.filter(x => region_ids.includes(x.id))
+        regions_other = labels_regions.filter(x => !region_ids.includes(x.id))
+
+        regions_in_continent.attr('display', 'inherit')
+        regions_other.attr('display', 'none')
+    }
 
     function zoom_on_click(d) {
+        console.log('zoom_on_click')
+        console.log('d', d)
+        console.log('d.id', d.id)
+
+        this_ = d3.select('#' + d.id)
+        console.log('this_', this_)
         // Check if this node is the one being zoomed on.
-        if (active.node() === this) return reset();
-        // console.log()
-        // console.log('active', active)
-        // console.log('this', this)
-        // console.log('d3.select(this)', d3.select(this))
-        // active.classed("active", false);
-        active = d3.select(this).classed("active", true);
+        if (active.node() === this_.node()) return reset();
+
+
+        // Check if it is a continent that was clicked. 
+        if (!('location' in d.data)) {
+            console.log('confirmed continent')
+
+            d3.selectAll('.region').classed("active", false)
+        }
+        // If yes, make that continent class inactive.
+
+
+        active = this_.classed("active", true)
+
+        if (continents_of_interest.includes(d.id)) {
+
+        }
+
+        // active.classed("active", false) // added this.
+
+        // Deactive other 2 continents.
+
 
 
         // Compute the bounds of a feature of interest, then derive scale & translate.
@@ -261,6 +393,10 @@ function clicked_region(d) {
     }
 
     function reset() {
+        labels_regions.attr('display', 'none')
+        labels_continent.attr('display', 'all')
+        delete_table();
+
         d3.selectAll('.continent').classed("active", false)
         active.classed("active", false);
         active = d3.select(null);
@@ -270,33 +406,23 @@ function clicked_region(d) {
             .call(zoom.transform, d3.zoomIdentity);
     }
 
-    function calc_div_coords(d) {
-        var centroid = path.centroid(d.geo);
-        var svg_position = $('svg').position();
-
-        coords = {
-            'left': svg_position['left'] + centroid[0] + d.properties.dx,
-            'top': svg_position['top'] + centroid[1] + d.properties.dy
-        }
-        return coords
+    function add_title(div, data) {
+        $(div).html(data);
     }
 
     function delete_table() {
-        d3.select("table").remove()
         d3.select("thead").remove()
         d3.select("tbody").remove()
     }
 
     function create_table(data) {
-        console.log(data)
         delete_table();
 
-        let table = d3.select("#body").append("table");
+        let table = d3.select("table")
         let thead = table.append("thead");
         let tbody = table.append("tbody");
 
-        columns = 'data'
-        console.log('columns', columns)
+        columns = Object.keys(data[0]);
 
         thead.append("tr")
             .selectAll("th")
@@ -305,17 +431,10 @@ function clicked_region(d) {
             .append("th")
             .text(function(column) { return toTitleCase(column); });
 
-        console.log('thead', thead)
-
-        // let table = d3.select("table");
-        // let thead = d3.select("thead");
-        // let tbody = table.append("tbody");
-
         let rows = tbody.selectAll("tr")
             .data(data)
             .enter()
             .append("tr");
-        console.log('rows', rows)
 
         let cells = rows.selectAll("td")
             .data(function(row) {
@@ -332,7 +451,7 @@ function clicked_region(d) {
         let geo = [];
         let continent_exists = false;
 
-        for (var i = 0; i < info.length; i++) {
+        for (let i = 0; i < info.length; i++) {
             let countries = d3.set(info[i].countries_iso);
             let countries_in_region = countries_topo.objects.countries.geometries.filter(d => countries.has(d.id))
             let region = topojson.merge(countries_topo, countries_in_region)
@@ -342,14 +461,15 @@ function clicked_region(d) {
                 'geo': region,
                 'data': info[i].data,
                 'countries_iso': info[i].countries_iso,
-                'centroid': info[i].centroid
+                'centroid': info[i].centroid,
+                'offset': info[i].offset
             })
         }
         return geo
     }
 
     function zoomed() {
-        g.style("stroke-width", 1.5 / d3.event.transform.k + "px");
+        // g.style("stroke-width", 1.5 / d3.event.transform.k + "px");
         g.attr("transform", d3.event.transform);
     }
 
@@ -358,13 +478,57 @@ function clicked_region(d) {
     }
 
     function get_unique_values(data, value) {
-        var set_of_values = {};
+        let set_of_values = {};
         data.forEach(d => set_of_values[d[value]] = 1)
-        var unique_values = Object.keys(set_of_values)
+        let unique_values = Object.keys(set_of_values)
 
         return unique_values;
     }
+
+    function toTitleCase(str) {
+        return str.replace(/\w\S*/g, function(txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    }
+
+
+    function get_all_countries(array) {
+        let l = []
+        array.forEach(d => l.push(...d.countries_iso))
+        return l
+    }
+
+
+    function shade_colour(colour, percent) {
+
+        var R = parseInt(colour.substring(1, 3), 16);
+        var G = parseInt(colour.substring(3, 5), 16);
+        var B = parseInt(colour.substring(5, 7), 16);
+
+        R = parseInt(R * (100 + percent) / 100);
+        G = parseInt(G * (100 + percent) / 100);
+        B = parseInt(B * (100 + percent) / 100);
+
+        R = (R < 255) ? R : 255;
+        G = (G < 255) ? G : 255;
+        B = (B < 255) ? B : 255;
+
+        var RR = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+        var GG = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+        var BB = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+
+        return "#" + RR + GG + BB;
+    }
     </script>
-</body>
+</footer>
 
 </html>
+<!-- 
+
+continents_geo.forEach(d => {
+    d.centroid = path.centroid(d.geo)
+})
+
+console.log(JSON.stringify(continents_geo))
+
+ -->
