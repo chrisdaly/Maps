@@ -71,24 +71,26 @@
 
     div#left_panel {
         padding-top: 1rem;
-        padding-left: 1rem;
+        padding-left: 2rem;
         z-index: 10;
         opacity: .7;
-        pointer-events: none;
         background: white;
         display: block;
         height: -webkit-fill-available;
         width: 100px;
-    }
+
+}
 
     div#continent {
         position: relative;
-        height: 200px;
+        height: 250px;
+
     }
 
-
     div#region {
-        position: relative
+        position: relative;
+        overflow-y: auto;
+        height: 500px;
     }
 
     div#viz {
@@ -98,13 +100,15 @@
     }
 
     table {
-        overflow: auto;
         border-collapse: collapse;
         table-layout: fixed;
         font-size: .7em;
         position: absolute;
         right: 4%;
-        
+        width: 100%;
+
+
+
     }
 
     th,
@@ -114,18 +118,20 @@
         text-overflow: ellipsis;
         padding: 10px;
         text-align: left;
+        border: solid;
+        border-width: 1px 0;
     }
 
     th {
-        /*text-transform: uppercase;*/
+    font-size: initial;
     }
 
     tr:nth-child(even) {
-        background-color: #EEE;
+        /*background-color: #EEE;*/
     }
 
     tr:nth-child(odd) {
-        background-color: #FDFDFD;
+        /*background-color: #FDFDFD;*/
     }
     </style>
 </head>
@@ -135,11 +141,11 @@
         <div class="row">
             <div id='left_panel' class="col-md-2 d-none d-md-block sidebar">
                 <div id='continent'>
-                    <h1 id='label_continent'>Continent</h1>
+                    <h1 id='label_continent'></h1>
                     <table id='table_continent'></table>
                 </div>
                 <div id='region'>
-                    <h2 id='label_region'>Region</h2>
+                    <h2 id='label_region'></h2>
                     <table id='table_region'></table>
                 </div>
             </div>
@@ -158,8 +164,14 @@
     <script src="./jquery-3.3.1.slim.min.js"></script>
     <script>
     const graticule = d3.geoGraticule();
-    const width = 1900;
-    const height = 900;
+    var margin = {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+    };
+    var width = window.innerWidth - margin.left - margin.right - 10,
+        height = window.innerHeight - margin.top - margin.bottom - 20;
     const opacity_fade = .1;
     const opacity_normal = .5;
     const continents_of_interest = ['Europe', 'APAC', 'MEA'];
@@ -268,7 +280,7 @@
                 // zoom_on_click(d)
             })
             .on("mouseover", function(d) {
-                d3.select(this).style('fill', d => d3.rgb(colour_scale[d.data.location.continent]).darker(1));
+                d3.select(this).style('fill', d => d3.rgb(colour_scale[d.data.location.continent]).darker(.5));
             })
             .on("mouseout", function(d) {
                 d3.select(this).style('fill', d => colour_scale[d.id]);
@@ -288,14 +300,12 @@
                 add_title('#label_continent', d.id)
                 add_title('#label_region', '')
                 delete_table('#table_region')
-
                 create_table(d.business, '#table_continent')
-
                 zoom_on_click(d)
                 clicked_continent(d)
             })
             .on("mouseover", function(d) {
-                d3.select(this).attr('fill', d => d3.rgb(colour_scale[d.id]).darker(1));
+                d3.select(this).attr('fill', d => d3.rgb(colour_scale[d.id]).darker(.5));
                 console.log('CONTINENT', d)
             })
             .on("mouseout", function(d) {
@@ -310,7 +320,7 @@
             .append("text")
             .attr("class", d => "label_region")
             .attr("id", d => d.id)
-            .attr("transform", d => "translate(" + offset_centroid(d) + ")")
+            .attr("transform", d => "translate(" + path.centroid(d.geo) + ")")
             .attr("dy", ".35em")
             .attr('display', 'none')
             .text(function(d) { return d.id; });
@@ -320,7 +330,7 @@
             .enter()
             .append("text")
             .attr("class", "label label_continent")
-            .attr("transform", d => "translate(" + offset_centroid(d) + ")")
+            .attr("transform", d => "translate(" + path.centroid(d.geo) + ")")
             .attr("dy", ".35em")
             .text(function(d) { return d.id; });
     }
@@ -334,8 +344,11 @@
             .style('opacity', 0)
 
         continents_other.style('opacity', .8)
-        labels_continent.attr('display', 'none')
-        transition_regions(d)
+        labels_continent.filter(d => d.id == continent_id)
+            .attr('display', 'none')
+        labels_continent.filter(d => d.id != continent_id)
+            .attr('display', 'inherit')
+        reveal_region_labels(d)
     }
 
     function offset_centroid(d) {
@@ -347,21 +360,20 @@
         return new_centroid
     }
 
-    function transition_regions(d) {
+    function reveal_region_labels(d) {
         region_data_in_continent = regions_geo.filter(x => x.data.location.continent == d.id)
         region_ids = get_unique_values(region_data_in_continent, 'id')
 
-        regions_in_continent = labels_regions.filter(x => region_ids.includes(x.id))
-        regions_other = labels_regions.filter(x => !region_ids.includes(x.id))
+        region_labels_in_continent = labels_regions.filter(x => region_ids.includes(x.id))
+        region_labels_other = labels_regions.filter(x => !region_ids.includes(x.id))
 
-        regions_in_continent.attr('display', 'inherit')
-        regions_other.attr('display', 'none')
+        region_labels_in_continent.attr('display', 'inherit')
+        region_labels_other.attr('display', 'none')
     }
 
     function zoom_on_click(d) {
         this_ = d3.select('#' + d.id)
 
-        // Check if this node is the one being zoomed on.
         if (active.node() === this_.node()) return reset();
 
         let is_continent = !('location' in d.data)
@@ -370,7 +382,6 @@
         }
         active = this_.classed("active", true)
 
-        // Compute the bounds of a feature of interest, then derive scale & translate.
         let bounds = path.bounds(d.geo),
             dx = bounds[1][0] - bounds[0][0],
             dy = bounds[1][1] - bounds[0][1],
@@ -379,7 +390,6 @@
             scale = Math.max(1, 0.9 / Math.max(dx / width, dy / height)),
             translate = [width / 2 - scale * x, height / 2 - scale * y];
 
-        // Update the projection to use computed scale & translate.
         svg.transition()
             .duration(750)
             .call(zoom.transform,
@@ -417,7 +427,7 @@
 
     function create_table(data, div) {
         delete_table(div);
-        console.log(data)
+
         let table = d3.select(div)
         let thead = table.append("thead");
         let tbody = table.append("tbody");
@@ -494,6 +504,7 @@
     function get_all_countries(array) {
         let l = []
         array.forEach(d => l.push(...d.countries_iso))
+
         return l
     }
     </script>
