@@ -9,6 +9,11 @@
         font-family: 'monserrat';
     }
 
+    h1 {
+        font-size: 20px;
+    }
+
+
     h1,
     h2 {
         font-family: montserrat;
@@ -61,6 +66,8 @@
 
     div#container {
         display: flex;
+        height: 100%;
+        position: absolute;
     }
 
     div#header {
@@ -70,27 +77,43 @@
     }
 
     div#left_panel {
-        padding-top: 1rem;
-        padding-left: 2rem;
+        padding-left: 1rem;
         z-index: 10;
         opacity: .7;
         background: white;
         display: block;
-        height: -webkit-fill-available;
-        width: 100px;
+        position: absolute;
+        height: 100%;
+                pointer-events: none;
 
-}
+        /*width: 100px;*/
+    }
+
+    div#continent_title {
+        padding-top: 5px;
+        height: 5%;
+    }
+
+    div#region_title {
+                overflow-x: 
+
+        padding-top: 5px;
+        height: 5%;
+    }
 
     div#continent {
-        position: relative;
-        height: 250px;
+        padding-top: 5px;
 
+        position: relative;
+        overflow-y: auto;
+        height: 25%;
     }
 
     div#region {
+        padding-top: 5px;
         position: relative;
         overflow-y: auto;
-        height: 500px;
+        height: 65%;
     }
 
     div#viz {
@@ -100,30 +123,24 @@
     }
 
     table {
-        border-collapse: collapse;
         table-layout: fixed;
-        font-size: .7em;
+        font-size: 12px;
         position: absolute;
-        right: 4%;
         width: 100%;
-
-
-
     }
 
     th,
     td {
         font-family: montserrat;
-        border: 1px white solid;
-        text-overflow: ellipsis;
-        padding: 10px;
         text-align: left;
-        border: solid;
-        border-width: 1px 0;
     }
 
     th {
-    font-size: initial;
+        font-size: 12px;
+    }
+
+    td {
+        font-size: 10px;
     }
 
     tr:nth-child(even) {
@@ -139,7 +156,7 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <div id='left_panel' class="col-md-2 d-none d-md-block sidebar">
+            <!-- <div id='left_panel' class="col-md-2 d-none d-md-block sidebar">
                 <div id='continent'>
                     <h1 id='label_continent'></h1>
                     <table id='table_continent'></table>
@@ -147,6 +164,72 @@
                 <div id='region'>
                     <h2 id='label_region'></h2>
                     <table id='table_region'></table>
+                </div>
+            </div> -->
+            <div id="left_panel" class="col-md-3 d-none d-md-block sidebar">
+                <div id='continent_title'>
+                    <h1 id="label_continent">MEA</h1>
+                </div>
+                <div id="continent">
+                    <div id="div_tablecontinent">
+                        <table class="table" id="table_continent">
+                            <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Regional Leader</td>
+                                    <td>Mark O'Herlihy</td>
+                                </tr>
+                                <tr>
+                                    <td>Regional Sales Manager</td>
+                                    <td>Mark O'Herlihy</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id='region_title'>
+                    <h1 id="label_region">Central West Africa</h1>
+                </div>
+                <div id="region">
+                    <table class="table" id="table_region">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>WH Client Executives Clinical</td>
+                                <td>TBH, Interim contact: Alex Mazur</td>
+                            </tr>
+                            <tr>
+                                <td>WH Client Exec Gov &amp; Pop Health</td>
+                                <td>TBH, Interim contact: Alex Mazur</td>
+                            </tr>
+                            <tr>
+                                <td>GHHS Solution Seller</td>
+                                <td>TBH</td>
+                            </tr>
+                            <tr>
+                                <td>Imaging Solution Seller</td>
+                                <td>TBH</td>
+                            </tr>
+                            <tr>
+                                <td>Oncology Solution Seller</td>
+                                <td>TBH</td>
+                            </tr>
+                            <tr>
+                                <td>VBC Solution Seller</td>
+                                <td>TRUVEN PRE-TOB</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -275,15 +358,19 @@
             .attr('stroke-width', .2)
             .on("click", function(d) {
                 // add_title('#label_continent', d.data.location.continent)
-                add_title('#label_region', d.id)
-                create_table(d.data.business.slice(2), '#table_region')
+
                 // zoom_on_click(d)
             })
             .on("mouseover", function(d) {
                 d3.select(this).style('fill', d => d3.rgb(colour_scale[d.data.location.continent]).darker(.5));
+                add_title('#label_region', d.id)
+                create_table(d.data.business.slice(2), '#table_region')
             })
             .on("mouseout", function(d) {
                 d3.select(this).style('fill', d => colour_scale[d.id]);
+                // add_title('#label_region', '')
+                // delete_table('#table_region')
+
                 regions.attr('fill', d => colour_scale[d.data.location.continent])
             })
 

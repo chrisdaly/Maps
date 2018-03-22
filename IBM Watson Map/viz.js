@@ -1,4 +1,4 @@
-var width = 960;
+var width = 1200;
 var height = 500;
 
 var legend_square_dim = {
@@ -8,7 +8,7 @@ var legend_square_dim = {
 
 var rect_spacing = 20;
 var legend_offset = {
-    'right': 100,
+    'right': 250,
     'bottom': 50
 };
 
@@ -31,7 +31,7 @@ var svg = d3.select("#left").append('svg')
 
 d3.queue()
     .defer(d3.json, "us.json")
-    .defer(d3.json, "regions_one_california_region.json")
+    .defer(d3.json, "regions_one_california_region 2.json")
     .await(function(error, us_data, region_data) {
         if (error) throw error;
 
@@ -89,7 +89,7 @@ d3.queue()
             .attr("class", function(d) { return d.toLowerCase(); })
 
         legend.append("text")
-            .data(legend_data)
+            .data(["West Zone - Jallel Harrati", "East Zone - Twyla Neal"])
             .attr("x", legend_square_dim['width'] + 5)
             .attr("y", rect_spacing - 5)
             .text(function(d) { return d; });
