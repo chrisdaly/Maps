@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="main.css">
+</head>
+
+<body>
+    <svg x=0 y=0>
+        <filter id="grayscale">
+            <feColorMatrix type="matrix" values="0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0 0 0 1 0" />
+            <feColorMatrix type="matrix" values="0.39 0.769 0.189 0  0 
+          0.349 0.686 0.168 0  0  
+          0.272 0.534 0.131 0  0 
+            0  0 0 1  0" />
+            <feColorMatrix type="matrix" values="0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0 0 0 1 0" />
+        </filter>
+    </svg>
+</body>
+<footer>
+    <script src="d3.v5.min.js"></script>
+    <script src="data.js"></script>
+    <script src="viz.js"></script>
+</footer>
+
+</html>
+<!-- browser-sync start --server --files="**/*" -->
+
+<!-- https://stackoverflow.com/questions/44023583/css3-grey-image-to-blue-color-using-filters -->
