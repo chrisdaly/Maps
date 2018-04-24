@@ -1,7 +1,7 @@
 text {
-    /*text-anchor: middle;*/
-    font-size: 20px;
-    font: Montserrat;
+  /*text-anchor: middle;*/
+  font-size: 20px;
+  font: Montserrat;
 }
 
 /*.node {
@@ -9,104 +9,113 @@ text {
 }*/
 
 .node circle {
-    /*fill: steelblue;*/
-    stroke: #1f57a4;
-    stroke-width: 5px;
-    stroke-opacity: 1;
+  /*fill: steelblue;*/
+  stroke: #1f57a4;
+  stroke-width: 5px;
+  stroke-opacity: 1;
+  cursor: pointer;
 }
 
 text.root {
-    font: 15px Montserrat;
-          text-anchor:middle;
-
+  font: 15px Montserrat;
+  text-anchor: middle;
 }
 
 text.node {
-    font: 12px Montserrat;
-              text-anchor:middle;
-
+  font: 12px Montserrat;
+  text-anchor: middle;
 }
 
-text.leaf {
-    font: 10px Montserrat;
-      text-align:left;
-
+text.reports {
+  font: 10px Montserrat;
+  text-align: left;
 }
 
 image {
-      -webkit-transition: all .8s ease-in-out;  
-    }
+  -webkit-transition: all 0.8s ease-in-out;
+}
 
 .link {
-    fill: none;
-    stroke: #1f57a4;
-    stroke-width: 2px;
+  fill: none;
+  stroke: #1f57a4;
+  stroke-width: 2px;
+}
+
+.reports_circles {
+  fill:  #1f57a4;
+}
+.report {
+  fill: none;
+  stroke: #1f57a4;
+  stroke-width: 2px;
 }
 
 .large {
-    font-size: 20px;
-    /*fill: red;*/
+  font-size: 20px;
+  /*fill: red;*/
 }
 
 #tooltip {
-  text-align:center;  
+  text-align: center;
   z-index: 1000;
   position: absolute;
-  opacity: 0;
+  opacity: 1;
 }
 
 #tooltip-Container {
   /*position: absolute;*/
   width: 200px;
+  height: 60px;
+
   font-size: 12px;
   line-height: 16px;
   padding: 10px;
   border-radius: 3px;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 1);
   color: #000;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-  -moz-box-shadow: 0 1px 5px rgba(0,0,0,0.4);  
-  border:1px solid rgba(200,200,200,0.85);
-  text-align:center;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 200, 200, 0.85);
+  text-align: center;
   cursor: default;
 }
 
 #tooltip .tooltip-planet {
   text-transform: uppercase;
-  font-family: 'Montserrat', sans-serif;
+  font-family: "Montserrat", sans-serif;
   font-size: 16px;
   margin-bottom: 4px;
   color: #1f57a4;
   font-weight: 500;
-  text-align:center;  
+  text-align: center;
 }
 
-#tooltip .tooltip-rule{
-  height:1px;
-  margin:1px auto 3px;
-  background:#ddd;
-  width:130px;
+#tooltip .tooltip-rule {
+  height: 1px;
+  margin: 1px auto 3px;
+  background: #ddd;
+  width: 130px;
 }
 
-#tooltip .tooltip-year{
-  color:#666;
-  font-size: 11px;   
-  text-align:center; 
-  margin-bottom: 6px;  
-  font-style:italic;
+#tooltip .tooltip-year {
+  color: #666;
+  font-size: 11px;
+  text-align: center;
+  margin-bottom: 6px;
+  font-style: italic;
 }
 #tooltip .tooltip-class {
-  color:#333333;
+  color: #333333;
   text-align: left;
   font-size: 13px;
-  text-align:center;  
+  text-align: center;
   margin-bottom: 4px;
 }
 
 .tooltip-info {
-  color:#333333;
-  font-size: 12px;  
-  text-align:center;  
-  overflow:hidden;
+  color: #333333;
+  font-size: 12px;
+  text-align: center;
+  overflow: hidden;
   margin-bottom: 2px;
 }
